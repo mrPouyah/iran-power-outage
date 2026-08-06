@@ -55,6 +55,9 @@ python -m outage_scraper --format csv --outfile babol-2026-08-06.csv
 
 # Verbose logging (shows every source/query it tries)
 python -m outage_scraper -v
+
+# Save every fetched page's raw HTML for debugging a bad/missing parse
+python -m outage_scraper -v --debug-dump-dir ./debug_html
 ```
 
 Or equivalently `python run.py ...`.
@@ -83,8 +86,9 @@ Or equivalently `python run.py ...`.
   been fetched and confirmed end-to-end. Run it with `-v` on a normal
   internet connection first; if a source returns nothing, check whether it's
   bot/geo-blocking (common for Iranian sites) or whether `parser.py`'s
-  header keywords just don't match that page's actual markup, and adjust
-  `outage_scraper/sources.py` / `parser.py` accordingly.
+  header keywords just don't match that page's actual markup. Add
+  `--debug-dump-dir ./debug_html` to save every fetched page to disk so a
+  bad parse can be diagnosed from the real HTML instead of guessing.
 - **DuckDuckGo HTML scraping** has no API key requirement but can change
   its markup or rate-limit; `search.py` isolates this so it's easy to swap
   in a paid search API (Bing/SerpAPI/Google CSE) by replacing `web_search()`.

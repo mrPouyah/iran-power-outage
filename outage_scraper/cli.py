@@ -7,6 +7,7 @@ import logging
 import sys
 import time
 from pathlib import Path
+from urllib.parse import quote
 
 import requests
 
@@ -37,6 +38,15 @@ def build_session() -> requests.Session:
     return session
 
 
+def _dump_html(dump_dir: str, url: str, html: str) -> None:
+    """Save a fetched page verbatim, so a failed parse can be inspected/debugged offline."""
+    directory = Path(dump_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+    safe_name = quote(url, safe="")[:150] + ".html"
+    (directory / safe_name).write_text(html, encoding="utf-8")
+    logger.debug("Dumped %s -> %s", url, directory / safe_name)
+
+
 def gather_records(
     city: str,
     province: str,
@@ -45,6 +55,7 @@ def gather_records(
     max_search_results: int,
     request_delay: float,
     session: requests.Session,
+    debug_dump_dir: str | None = None,
 ) -> list[OutageRecord]:
     records: list[OutageRecord] = []
 
@@ -52,6 +63,8 @@ def gather_records(
         logger.info("در حال بررسی منبع مستقیم: %s", url)
         html = fetch(url, session)
         if html:
+            if debug_dump_dir:
+                _dump_html(debug_dump_dir, url, html)
             records.extend(parse_outage_page(
                 html, city=city, province=province,
                 date_jalali=date.jalali_long, date_gregorian=str(date.gregorian),
@@ -76,6 +89,8 @@ def gather_records(
                 html = fetch(url, session)
                 if not html:
                     continue
+                if debug_dump_dir:
+                    _dump_html(debug_dump_dir, url, html)
                 page_records = parse_outage_page(
                     html, city=city, province=province,
                     date_jalali=date.jalali_long, date_gregorian=str(date.gregorian),
@@ -143,6 +158,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--outfile", default=None, help="مسیر فایل خروجی برای json/csv (پیش‌فرض: چاپ در ترمینال)")
     parser.add_argument("--max-search-results", type=int, default=6)
     parser.add_argument("--request-delay", type=float, default=1.0, help="فاصله بین درخواست‌ها به ثانیه")
+    parser.add_argument(
+        "--debug-dump-dir", default=None,
+        help="ذخیره HTML خام هر صفحه‌ی دریافت‌شده در این پوشه، برای اشکال‌زدایی",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser.parse_args(argv)
 
@@ -170,6 +189,7 @@ def main(argv: list[str] | None = None) -> int:
         max_search_results=args.max_search_results,
         request_delay=args.request_delay,
         session=session,
+        debug_dump_dir=args.debug_dump_dir,
     )
     write_output(records, args.format, args.outfile)
     return 0 if records else 2

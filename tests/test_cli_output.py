@@ -1,7 +1,7 @@
 import csv
 import json
 
-from outage_scraper.cli import write_output
+from outage_scraper.cli import _dump_html, write_output
 from outage_scraper.models import OutageRecord
 
 RECORD = OutageRecord(
@@ -39,3 +39,11 @@ def test_table_output_does_not_crash(capsys):
     write_output([RECORD], "table", None)
     captured = capsys.readouterr()
     assert "بابل" in captured.out
+
+
+def test_dump_html_writes_a_readable_file(tmp_path):
+    url = "https://example.test/babol-outage?x=1"
+    _dump_html(str(tmp_path), url, "<html>سلام</html>")
+    dumped = list(tmp_path.glob("*.html"))
+    assert len(dumped) == 1
+    assert dumped[0].read_text(encoding="utf-8") == "<html>سلام</html>"

@@ -141,11 +141,18 @@ def parse_outage_page(
 ) -> list[OutageRecord]:
     soup = BeautifulSoup(html, "html.parser")
     if not _page_mentions_city(soup, city):
+        logger.debug("%s does not mention %r, skipping", url, city)
         return []
 
     raw_records = _records_from_tables(soup)
     if not raw_records:
         raw_records = _records_from_text(soup, city)
+    if not raw_records:
+        logger.debug(
+            "%s mentions %r but no table/time-range pattern matched; "
+            "the page markup likely differs from what parser.py expects",
+            url, city,
+        )
 
     records: list[OutageRecord] = []
     seen: set[tuple] = set()
