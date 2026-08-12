@@ -1,0 +1,450 @@
+{# تب ۲ — مانیتورینگ کل زنجیره، از جمع‌آوری داده تا ارسال پیامک #}
+{% extends "base.html" %}
+{% block title %}مانیتورینگ{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# ------------------------------------------------------------------
+     بخش ۱ — کلید فعال/غیرفعال کل سامانه
+     ------------------------------------------------------------------ #}
+  <div id="power-card" class="bg-white rounded-xl p-5 shadow border-r-4 border-gray-300">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="font-bold mb-1">وضعیت کلی سامانه</h2>
+        <p id="power-summary" class="text-sm text-gray-500">در حال بارگذاری…</p>
+      </div>
+      <button id="power-btn" onclick="togglePower()" disabled
+              class="px-5 py-2 rounded-lg text-white bg-gray-400">…</button>
+    </div>
+    <p class="text-xs text-gray-400 mt-3">
+      وقتی سامانه غیرفعال است، اجرای خودکار هیچ داده‌ای ذخیره و هیچ پیامکی ارسال نمی‌کند.
+      تست‌های دستی پایین، در هر دو حالت کار می‌کنند و هرگز چیزی ذخیره نمی‌کنند.
+    </p>
+  </div>
+
+  {# ------------------------------------------------------------------
+     بخش ۲ — وضعیت چهار مرحله‌ی زنجیره
+     ------------------------------------------------------------------ #}
+  <div>
+    <h2 class="font-bold mb-3">مراحل زنجیره</h2>
+    <div id="stages" class="grid gap-3 sm:grid-cols-2">
+      <p class="text-sm text-gray-400">در حال بارگذاری…</p>
+    </div>
+  </div>
+
+  {# ------------------------------------------------------------------
+     بخش ۳ — تست‌های دستی
+     ------------------------------------------------------------------ #}
+  <div class="bg-white rounded-xl p-5 shadow">
+    <h2 class="font-bold mb-1">تست دستی</h2>
+    <p class="text-sm text-gray-500 mb-4">
+      «تست دریافت داده» فقط فهرست قطعی‌های امروز را از منبع می‌گیرد و نمایش می‌دهد،
+      <span class="font-bold text-gray-700">بدون ذخیره‌سازی</span>.
+      تطبیق قطعی‌ها با شماره مشترکین، هنگام اجرای واقعی به‌صورت خودکار انجام می‌شود.
+    </p>
+
+    <div class="flex flex-wrap gap-2">
+      <button onclick="runTest()" id="test-btn"
+              class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm">
+        تست دریافت داده
+      </button>
+      <button onclick="runMatchTest()" id="match-btn"
+              class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm">
+        تست همسان‌سازی مشترک با ساعت قطعی
+      </button>
+      <button onclick="runRealSync()" id="sync-btn"
+              class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm">
+        اجرای واقعی (با ذخیره‌سازی و تطبیق خودکار)
+      </button>
+    </div>
+
+    <div id="test-status" class="mt-4 text-sm hidden"></div>
+    <div id="test-result" class="mt-4 hidden"></div>
+  </div>
+
+  {# ------------------------------------------------------------------
+     بخش ۴ — تاریخچه‌ی اجراها
+     ------------------------------------------------------------------ #}
+  <div class="bg-white rounded-xl p-5 shadow">
+    <h2 class="font-bold mb-3">تاریخچه‌ی اجراها</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-gray-500 border-b">
+          <tr>
+            <th class="text-right py-2 font-normal">زمان</th>
+            <th class="text-right py-2 font-normal">نوع</th>
+            <th class="text-right py-2 font-normal">وضعیت</th>
+            <th class="text-right py-2 font-normal">دریافت</th>
+            <th class="text-right py-2 font-normal">ذخیره</th>
+            <th class="text-right py-2 font-normal">تطبیق</th>
+          </tr>
+        </thead>
+        <tbody id="history"></tbody>
+      </table>
+    </div>
+    <p id="history-empty" class="text-sm text-gray-400 hidden">هنوز اجرایی ثبت نشده است.</p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ---------------------------------------------------------------------
+// نگاشت وضعیت هر مرحله به رنگ و نشانه — یک جا تعریف می‌شود تا رنگ‌ها
+// در کل صفحه یکدست بمانند
+// ---------------------------------------------------------------------
+const STATUS_STYLE = {
+  ok:              { icon: '✓', border: 'border-green-500',  text: 'text-green-700'  },
+  warning:         { icon: '!', border: 'border-amber-500',  text: 'text-amber-700'  },
+  error:           { icon: '✗', border: 'border-red-500',    text: 'text-red-700'    },
+  not_implemented: { icon: '—', border: 'border-gray-300',   text: 'text-gray-500'   },
+};
+
+let systemEnabled = false;
+
+// ---------------------------------------------------------------------
+// بارگذاری و نمایش وضعیت
+// ---------------------------------------------------------------------
+async function loadStatus() {
+  const res = await fetch('/api/monitoring/status');
+  if (!res.ok) return;
+  const data = await res.json();
+
+  renderPower(data);
+  renderStages(data.stages);
+  renderHistory(data.history);
+}
+
+function renderPower(data) {
+  systemEnabled = data.is_enabled;
+  document.getElementById('power-summary').textContent = data.enabled_summary;
+
+  const card = document.getElementById('power-card');
+  card.className = 'bg-white rounded-xl p-5 shadow border-r-4 '
+                 + (data.is_enabled ? 'border-green-500' : 'border-gray-300');
+
+  const btn = document.getElementById('power-btn');
+  btn.disabled = false;
+  btn.textContent = data.is_enabled ? 'غیرفعال کردن سامانه' : 'فعال کردن سامانه';
+  btn.className = 'px-5 py-2 rounded-lg text-white '
+                + (data.is_enabled ? 'bg-red-600 hover:bg-red-700'
+                                   : 'bg-green-600 hover:bg-green-700');
+}
+
+function renderStages(stages) {
+  const box = document.getElementById('stages');
+  box.innerHTML = '';
+  for (const s of stages) {
+    const style = STATUS_STYLE[s.status] || STATUS_STYLE.not_implemented;
+    const card = document.createElement('div');
+    card.className = `bg-white rounded-xl p-4 shadow border-r-4 ${style.border}`;
+    card.innerHTML = `
+      <div class="flex items-center gap-2 mb-1">
+        <span class="${style.text} font-bold">${style.icon}</span>
+        <span class="font-bold text-sm">${s.title}</span>
+      </div>
+      <p class="text-sm text-gray-600">${s.summary}</p>`;
+    box.appendChild(card);
+  }
+}
+
+function renderHistory(history) {
+  const body = document.getElementById('history');
+  const empty = document.getElementById('history-empty');
+  body.innerHTML = '';
+  empty.classList.toggle('hidden', history.length > 0);
+
+  for (const h of history) {
+    const ok = h.status === 'success';
+    const tr = document.createElement('tr');
+    tr.className = 'border-b last:border-0';
+    tr.innerHTML = `
+      <td class="py-2 text-gray-500">${h.started_at}</td>
+      <td class="py-2">${h.kind}</td>
+      <td class="py-2 ${ok ? 'text-green-700' : 'text-red-700'}">
+        ${ok ? 'موفق' : 'ناموفق'}
+      </td>
+      <td class="py-2">${h.fetched}</td>
+      <td class="py-2">${h.stored}</td>
+      <td class="py-2">${h.matched}</td>`;
+    body.appendChild(tr);
+
+    // پیام خطا در سطر جداگانه، تا کامل و خوانا دیده شود
+    if (h.error) {
+      const errRow = document.createElement('tr');
+      errRow.className = 'border-b last:border-0';
+      errRow.innerHTML = `<td colspan="6" class="pb-2 text-xs text-red-600">${h.error}</td>`;
+      body.appendChild(errRow);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+// کلید فعال / غیرفعال
+// ---------------------------------------------------------------------
+async function togglePower() {
+  const turningOn = !systemEnabled;
+  const question = turningOn
+    ? 'سامانه فعال شود؟ از این پس اجرای خودکار، داده‌ها را ذخیره می‌کند.'
+    : 'سامانه غیرفعال شود؟ اجرای خودکار متوقف می‌شود.';
+  if (!confirm(question)) return;
+
+  const btn = document.getElementById('power-btn');
+  btn.disabled = true;
+  await fetch('/api/monitoring/enabled', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled: turningOn })
+  });
+  await loadStatus();
+}
+
+// ---------------------------------------------------------------------
+// تست دستی و اجرای واقعی
+// ---------------------------------------------------------------------
+// همه‌ی دکمه‌های اجرا در یک جا فهرست شده‌اند تا هنگام اجرا با هم
+// غیرفعال/فعال شوند و کاربر دو درخواست هم‌زمان نفرستد
+const ACTION_BUTTONS = ['test-btn', 'match-btn', 'sync-btn'];
+
+function setButtonsDisabled(disabled) {
+  for (const id of ACTION_BUTTONS) {
+    document.getElementById(id).disabled = disabled;
+  }
+}
+
+function setBusy(message) {
+  const status = document.getElementById('test-status');
+  setButtonsDisabled(true);
+  status.classList.remove('hidden');
+  status.className = 'mt-4 text-sm text-gray-500';
+  status.textContent = message;
+}
+
+async function runTest() {
+  setBusy('در حال دریافت داده از منبع… (چند ثانیه طول می‌کشد)');
+  await callAndRender('/api/monitoring/test/data', renderDataTest);
+}
+
+async function runMatchTest() {
+  setBusy('در حال دریافت داده و همسان‌سازی با مشترکین… (چند ثانیه طول می‌کشد)');
+  await callAndRender('/api/monitoring/test/matching', renderMatchingTest);
+}
+
+async function runRealSync() {
+  if (!confirm('اجرای واقعی: داده‌ی امروز ذخیره و خاموشی‌های روزهای گذشته پاک می‌شود. ادامه؟')) return;
+  setBusy('در حال اجرای واقعی…');
+  await callAndRender('/api/monitoring/run-sync', renderSyncResult);
+}
+
+// یک تابع مشترک برای همه‌ی دکمه‌ها؛ فقط تابع رندر نتیجه فرق می‌کند
+async function callAndRender(url, renderFn) {
+  try {
+    const res = await fetch(url, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.detail || 'اجرا با خطا مواجه شد.');
+      return;
+    }
+    if (data.error) {
+      showError('خطا: ' + data.error);
+      return;
+    }
+    renderFn(data);
+  } catch (err) {
+    showError('ارتباط با سرور برقرار نشد: ' + err.message);
+  } finally {
+    setButtonsDisabled(false);
+    loadStatus();   // وضعیت و تاریخچه بعد از هر اجرا تازه‌سازی می‌شود
+  }
+}
+
+function showError(message) {
+  const status = document.getElementById('test-status');
+  status.className = 'mt-4 text-sm text-red-600';
+  status.textContent = message;
+  document.getElementById('test-result').classList.add('hidden');
+}
+
+// ---------------------------------------------------------------------
+// نمایش نتیجه‌ی «تست دریافت داده» — فقط فهرست قطعی‌ها، بدون تطبیق
+// ---------------------------------------------------------------------
+function renderDataTest(d) {
+  const status = document.getElementById('test-status');
+  const box = document.getElementById('test-result');
+
+  status.className = 'mt-4 text-sm text-green-700';
+  status.textContent = `تست انجام شد — ${d.count} قطعی دریافت شد. هیچ داده‌ای ذخیره نشد.`;
+
+  box.classList.remove('hidden');
+
+  if (d.count === 0) {
+    box.innerHTML = `<p class="text-sm text-gray-500">
+      برای ${d.date_jalali} هیچ قطعی‌ای از منبع دریافت نشد.</p>`;
+    return;
+  }
+
+  // جدول ساده‌ی قطعی‌ها: ساعت، محدوده، و کد (اگر منبع منتشر کرده باشد)
+  const rows = d.outages.map(o => `
+    <tr class="border-b last:border-0">
+      <td class="py-2 pl-3 text-blue-600 font-mono whitespace-nowrap">${o.start_time}–${o.end_time}</td>
+      <td class="py-2 pl-3 text-gray-500">${o.neighborhood_code || '—'}</td>
+      <td class="py-2 text-gray-700">${o.location}</td>
+    </tr>`).join('');
+
+  box.innerHTML = `
+    <div class="text-sm text-gray-500 mb-2">فهرست قطعی‌های ${d.city} — ${d.date_jalali}</div>
+    <div class="overflow-x-auto border rounded-lg">
+      <table class="w-full text-sm">
+        <thead class="text-gray-500 border-b bg-gray-50">
+          <tr>
+            <th class="text-right py-2 pl-3 font-normal whitespace-nowrap">بازه زمانی</th>
+            <th class="text-right py-2 pl-3 font-normal">کد</th>
+            <th class="text-right py-2 font-normal">محدوده / محله</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ---------------------------------------------------------------------
+// نمایش نتیجه‌ی «تست همسان‌سازی» — کدام مشترک قطعی دارد و کدام ندارد
+// ---------------------------------------------------------------------
+function renderMatchingTest(d) {
+  const status = document.getElementById('test-status');
+  const box = document.getElementById('test-result');
+
+  status.className = 'mt-4 text-sm text-green-700';
+  status.textContent =
+    `تست همسان‌سازی انجام شد — ${d.matched_count} از ${d.active_subscribers} مشترک، `
+    + `امروز قطعی دارند. هیچ داده‌ای ذخیره نشد.`;
+
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+      ${statTile('قطعی دریافتی', d.total_outages)}
+      ${statTile('مشترک فعال', d.active_subscribers)}
+      ${statTile('دارای قطعی', d.matched_count)}
+      ${statTile('بدون قطعی', d.unmatched.length)}
+    </div>`;
+
+  if (d.active_subscribers === 0) {
+    box.innerHTML += `<p class="text-sm text-gray-500">
+      هنوز هیچ مشترکی برای این شهر ثبت نشده است.</p>`;
+    return;
+  }
+
+  // بخش ۱ — مشترکینی که قطعی دارند (اگر سامانه فعال بود، پیامک می‌گرفتند)
+  if (d.matched.length > 0) {
+    const rows = d.matched.map(m => `
+      <div class="border border-green-200 bg-green-50 rounded-lg p-3">
+        <div class="font-bold text-sm mb-2">
+          ${m.full_name}
+          <span class="font-normal text-gray-500">— ${m.neighborhood} (${m.mobile})</span>
+        </div>
+        <ul class="space-y-1">
+          ${m.outages.map(o => `
+            <li class="text-sm flex gap-2">
+              <span class="text-blue-600 font-mono whitespace-nowrap">${o.start_time}–${o.end_time}</span>
+              <span class="text-gray-600">${o.location}</span>
+            </li>`).join('')}
+        </ul>
+      </div>`).join('');
+
+    box.innerHTML += `
+      <div class="mb-4">
+        <h3 class="text-sm font-bold text-green-700 mb-2">
+          ✓ مشترکینی که امروز قطعی دارند (${d.matched.length})
+        </h3>
+        <div class="space-y-2">${rows}</div>
+      </div>`;
+  }
+
+  // بخش ۲ — مشترکین بدون تطبیق. این بخش برای عیب‌یابی حیاتی است: اگر
+  // انتظار داشتید مشترکی پیامک بگیرد و اینجا دیدیدش، یعنی متن محله‌ی
+  // ثبت‌شده با متن منبع نمی‌خواند.
+  if (d.unmatched.length > 0) {
+    const rows = d.unmatched.map(m => `
+      <li class="text-sm py-1">
+        ${m.full_name}
+        <span class="text-gray-500">— محله ثبت‌شده: «${m.neighborhood}» (${m.mobile})</span>
+      </li>`).join('');
+
+    box.innerHTML += `
+      <div>
+        <h3 class="text-sm font-bold text-gray-600 mb-1">
+          مشترکینی که امروز قطعی ندارند (${d.unmatched.length})
+        </h3>
+        <p class="text-xs text-gray-400 mb-2">
+          اگر انتظار داشتید یکی از این‌ها قطعی داشته باشد، احتمالاً متن محله‌ی
+          ثبت‌شده با متن منبع یکسان نیست — نام محله را کوتاه‌تر و دقیق‌تر بنویسید.
+        </p>
+        <ul class="border rounded-lg p-3 divide-y">${rows}</ul>
+      </div>`;
+  }
+}
+
+// ---------------------------------------------------------------------
+// نمایش نتیجه‌ی «اجرای واقعی» — شامل تطبیق خودکار با مشترکین
+// ---------------------------------------------------------------------
+function renderSyncResult(d) {
+  const status = document.getElementById('test-status');
+  const box = document.getElementById('test-result');
+
+  status.className = 'mt-4 text-sm text-amber-700';
+  status.textContent =
+    `اجرای واقعی انجام شد — ${d.stored_count} ردیف تازه ذخیره و ${d.purged_count} خاموشی قدیمی پاک شد.`;
+
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+      ${statTile('ردیف دریافتی', d.fetched_count)}
+      ${statTile('مشترک فعال', d.active_subscribers)}
+      ${statTile('مشترک دارای قطعی', d.matched_count)}
+      ${statTile('تاریخ', d.date_jalali)}
+    </div>`;
+
+  if (d.active_subscribers === 0) {
+    box.innerHTML += `<p class="text-sm text-gray-500">
+      هنوز هیچ مشترکی ثبت نشده است؛ تطبیق خودکار وقتی معنا پیدا می‌کند که
+      مشترکین از طریق تب «ثبت مشترک» وارد شوند.</p>`;
+    return;
+  }
+
+  if (d.matches.length === 0) {
+    box.innerHTML += `<p class="text-sm text-gray-500">
+      هیچ‌کدام از مشترکین فعال، برای این تاریخ قطعی ندارند.</p>`;
+    return;
+  }
+
+  // برای هر مشترک، فهرست قطعی‌هایی که به او مربوط است
+  const rows = d.matches.map(m => `
+    <div class="border rounded-lg p-3">
+      <div class="font-bold text-sm mb-2">
+        ${m.full_name}
+        <span class="font-normal text-gray-500">— ${m.neighborhood} (${m.mobile})</span>
+      </div>
+      <ul class="space-y-1">
+        ${m.outages.map(o => `
+          <li class="text-sm flex gap-2">
+            <span class="text-blue-600 font-mono whitespace-nowrap">${o.start_time}–${o.end_time}</span>
+            <span class="text-gray-600">${o.location}</span>
+          </li>`).join('')}
+      </ul>
+    </div>`).join('');
+
+  box.innerHTML += `<div class="space-y-2">${rows}</div>`;
+}
+
+function statTile(label, value) {
+  return `<div class="bg-gray-50 rounded-lg p-3 text-center">
+            <div class="text-lg font-bold">${value}</div>
+            <div class="text-xs text-gray-500">${label}</div>
+          </div>`;
+}
+
+loadStatus();
+</script>
+{% endblock %}

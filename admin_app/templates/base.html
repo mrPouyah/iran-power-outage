@@ -1,0 +1,55 @@
+{# قالب پایه‌ی مشترک همه‌ی صفحه‌های پنل.
+   هدر، نوار تب و دکمه‌ی خروج فقط اینجا تعریف شده‌اند تا در صفحه‌های
+   مختلف تکرار نشوند؛ هر صفحه فقط بلوک content خودش را پر می‌کند. #}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}پنل مدیریت{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+
+  <header class="bg-white border-b sticky top-0 z-10">
+    <div class="max-w-5xl mx-auto px-4">
+
+      <div class="flex items-center justify-between py-3">
+        <span class="font-bold">⚡ سامانه هشدار خاموشی برق</span>
+        {# خروج با POST انجام می‌شود نه لینک GET، تا با پیش‌واکشی مرورگر
+           یا کلیک ناخواسته، کاربر به‌طور تصادفی خارج نشود #}
+        <form method="post" action="/logout">
+          <button type="submit" class="text-sm text-gray-500 hover:text-red-600">خروج</button>
+        </form>
+      </div>
+
+      {# نوار تب: تب فعال با متغیر active_tab مشخص می‌شود که هر صفحه
+         هنگام رندر شدن آن را می‌فرستد #}
+      <nav class="flex gap-1 -mb-px">
+        {% set tabs = [
+          ('register',   '/',           'ثبت مشترک'),
+          ('monitoring', '/monitoring', 'مانیتورینگ')
+        ] %}
+        {% for key, href, label in tabs %}
+          <a href="{{ href }}"
+             class="px-4 py-2 text-sm border-b-2 transition
+                    {% if active_tab == key %}
+                      border-blue-600 text-blue-600 font-bold
+                    {% else %}
+                      border-transparent text-gray-500 hover:text-gray-800
+                    {% endif %}">
+            {{ label }}
+          </a>
+        {% endfor %}
+      </nav>
+
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto p-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

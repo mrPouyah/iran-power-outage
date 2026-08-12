@@ -1,0 +1,152 @@
+{# تب ۱ — ثبت مشترک جدید توسط اپراتور #}
+{% extends "base.html" %}
+{% block title %}ثبت مشترک{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto space-y-6">
+
+  <div class="bg-white rounded-xl p-6 shadow">
+    <h1 class="text-xl mb-6">ثبت مشترک جدید</h1>
+
+    <form id="form" class="space-y-4">
+      <div>
+        <label class="block mb-1 text-sm">نام و نام خانوادگی</label>
+        <input name="full_name" required class="w-full border rounded-lg p-2" />
+      </div>
+
+      <div>
+        <label class="block mb-1 text-sm">شماره موبایل</label>
+        <input name="mobile" required placeholder="09123456789"
+               class="w-full border rounded-lg p-2" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <input name="province" placeholder="استان" required value="مازندران"
+               class="border rounded-lg p-2" />
+        <input name="city" placeholder="شهر" required value="بابل"
+               class="border rounded-lg p-2" />
+      </div>
+
+      <div>
+        <label class="block mb-1 text-sm">محله / خیابان سکونت</label>
+        <input name="neighborhood" required placeholder="مثلاً: غدیر ۱"
+               class="w-full border rounded-lg p-2" />
+      </div>
+
+      <div>
+        <label class="block mb-1 text-sm">کد محله (اختیاری، اگر مشتری می‌دانست)</label>
+        <input name="neighborhood_code" class="w-full border rounded-lg p-2" />
+      </div>
+
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-2">
+        ثبت مشترک
+      </button>
+    </form>
+
+    <p id="msg" class="mt-4 text-sm"></p>
+  </div>
+
+  <div class="bg-white rounded-xl p-6 shadow">
+    <h2 class="text-lg mb-4">مشترکین ثبت‌شده</h2>
+    <ul id="list" class="space-y-2 text-sm"></ul>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const form = document.getElementById('form');
+const msg  = document.getElementById('msg');
+const list = document.getElementById('list');
+
+// داده‌های فرم را به دیکشنری تبدیل می‌کند و فیلد خالی «کد محله» را null می‌فرستد
+function formToPayload(formEl) {
+  const data = Object.fromEntries(new FormData(formEl));
+  if (!data.neighborhood_code) data.neighborhood_code = null;
+  return data;
+}
+
+async function loadSubscribers() {
+  const res = await fetch('/api/subscribers');
+  if (!res.ok) return;
+  const subs = await res.json();
+
+  list.innerHTML = '';
+  if (subs.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'text-gray-400';
+    empty.textContent = 'هنوز مشترکی ثبت نشده است.';
+    list.appendChild(empty);
+    return;
+  }
+
+  for (const s of subs) {
+    list.appendChild(subscriberRow(s));
+  }
+}
+
+// هر ردیف با createElement/textContent ساخته می‌شود (نه innerHTML)، تا
+// نام یا محله‌ای که اپراتور وارد می‌کند نتواند به‌عنوان HTML اجرا شود
+function subscriberRow(s) {
+  const li = document.createElement('li');
+  li.className = 'border-b pb-2 flex items-start justify-between gap-3';
+
+  const info = document.createElement('div');
+  const name = document.createElement('div');
+  name.textContent = s.full_name;
+  const meta = document.createElement('div');
+  meta.className = 'text-gray-500 text-xs';
+  meta.textContent = `${s.neighborhood} — ${s.mobile}`;
+  info.append(name, meta);
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'text-xs text-gray-400 hover:text-red-600 shrink-0';
+  btn.textContent = 'حذف';
+  btn.onclick = () => deleteSubscriber(s);
+
+  li.append(info, btn);
+  return li;
+}
+
+async function deleteSubscriber(s) {
+  // حذف داده‌ی شخصی برگشت‌ناپذیر است، پس تأیید صریح گرفته می‌شود و
+  // نام مشترک در پیام می‌آید تا اپراتور اشتباهی نفر دیگری را حذف نکند
+  if (!confirm(`مشترک «${s.full_name}» (${s.mobile}) حذف شود؟ این کار قابل بازگشت نیست.`)) return;
+
+  const res = await fetch(`/api/subscribers/${s.id}`, { method: 'DELETE' });
+  if (res.ok) {
+    msg.className = 'mt-4 text-sm text-green-600';
+    msg.textContent = `مشترک «${s.full_name}» حذف شد.`;
+    loadSubscribers();
+  } else {
+    const err = await res.json();
+    msg.className = 'mt-4 text-sm text-red-600';
+    msg.textContent = err.detail || 'خطا در حذف مشترک.';
+  }
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const res = await fetch('/api/subscribers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(formToPayload(form))
+  });
+  if (res.ok) {
+    msg.className = 'mt-4 text-sm text-green-600';
+    msg.textContent = 'مشترک با موفقیت ثبت شد.';
+    form.reset();
+    loadSubscribers();
+  } else {
+    const err = await res.json();
+    msg.className = 'mt-4 text-sm text-red-600';
+    msg.textContent = err.detail || 'خطا در ثبت مشترک.';
+  }
+});
+
+loadSubscribers();
+</script>
+{% endblock %}

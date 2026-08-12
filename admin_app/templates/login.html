@@ -1,0 +1,54 @@
+{# صفحه‌ی ورود — عمداً از base.html ارث نمی‌برد، چون کاربرِ واردنشده
+   نباید نوار تب و دکمه‌ی خروج را ببیند #}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ورود به پنل اپراتور</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4 font-sans">
+
+  <!-- کارت ورود؛ با max-w-sm روی موبایل هم خوانا و مرتب می‌ماند -->
+  <div class="w-full max-w-sm bg-white rounded-xl p-6 shadow">
+    <h1 class="text-xl mb-1">ورود به پنل اپراتور</h1>
+    <p class="text-sm text-gray-500 mb-6">سامانه‌ی هشدار خاموشی برق</p>
+
+    <!-- فرم معمولی HTML (بدون JS): مرورگر خودش POST می‌کند و ریدایرکت
+         سمت سرور را دنبال می‌کند. ساده‌تر و مقاوم‌تر از fetch دستی. -->
+    <form method="post" action="/login" class="space-y-4">
+      <div>
+        <label class="block mb-1 text-sm">نام کاربری</label>
+        <input name="username" required autofocus autocomplete="username"
+               class="w-full border rounded-lg p-2" />
+      </div>
+
+      <div>
+        <label class="block mb-1 text-sm">رمز عبور</label>
+        <input name="password" type="password" required autocomplete="current-password"
+               class="w-full border rounded-lg p-2" />
+      </div>
+
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-2">
+        ورود
+      </button>
+    </form>
+
+    <!-- این بخش فقط وقتی نمایش داده می‌شود که سرور با ?error=1 برگشت بزند.
+         عمداً نمی‌گوید «نام کاربری اشتباه است» یا «رمز اشتباه است» — چون
+         این تفکیک به مهاجم می‌گوید کدام نام کاربری واقعاً وجود دارد. -->
+    <p id="error" class="mt-4 text-sm text-red-600 hidden">
+      نام کاربری یا رمز عبور نادرست است.
+    </p>
+  </div>
+
+<script>
+  // اگر آدرس شامل ?error=1 بود، پیام خطا را آشکار کن
+  if (new URLSearchParams(location.search).has('error')) {
+    document.getElementById('error').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
