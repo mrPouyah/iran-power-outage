@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سند فنی سامانه هشدار خاموشی برق</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #eceef2;
+    --border: #d8dce3;
+    --ink: #1b222c;
+    --ink-muted: #5b6472;
+    --accent: #c17e18;
+    --accent-strong: #a3690f;
+    --accent-bg: #fbeed9;
+    --data: #157b76;
+    --data-bg: #e2f2f1;
+    --status-done: #1f8f63;
+    --status-done-bg: #e4f5ec;
+    --status-planned: #3e6690;
+    --status-planned-bg: #e7eef5;
+    --status-risk: #b54b33;
+    --status-risk-bg: #fbeae4;
+    --shadow: 0 1px 2px rgba(27,34,44,0.06), 0 8px 24px rgba(27,34,44,0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1420;
+      --surface: #171d2b;
+      --surface-2: #1f2635;
+      --border: #2b3346;
+      --ink: #e7eaf1;
+      --ink-muted: #9ba5b7;
+      --accent: #f2ae4a;
+      --accent-strong: #ffc169;
+      --accent-bg: #3a2a10;
+      --data: #4fc7c0;
+      --data-bg: #113633;
+      --status-done: #3fce93;
+      --status-done-bg: #123326;
+      --status-planned: #7fa8d6;
+      --status-planned-bg: #16253a;
+      --status-risk: #e1785a;
+      --status-risk-bg: #3a1e17;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0f1420;
+    --surface: #171d2b;
+    --surface-2: #1f2635;
+    --border: #2b3346;
+    --ink: #e7eaf1;
+    --ink-muted: #9ba5b7;
+    --accent: #f2ae4a;
+    --accent-strong: #ffc169;
+    --accent-bg: #3a2a10;
+    --data: #4fc7c0;
+    --data-bg: #113633;
+    --status-done: #3fce93;
+    --status-done-bg: #123326;
+    --status-planned: #7fa8d6;
+    --status-planned-bg: #16253a;
+    --status-risk: #e1785a;
+    --status-risk-bg: #3a1e17;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Vazirmatn", "IRANSans", Tahoma, "Segoe UI", sans-serif;
+    line-height: 1.85;
+    font-size: 16px;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+  }
+
+  .wide { max-width: 900px; }
+
+  /* ---------- کاور ---------- */
+  .cover {
+    padding: 56px 40px 40px;
+    margin: 0 0 40px;
+    background: linear-gradient(155deg, var(--surface) 0%, var(--surface) 60%, var(--accent-bg) 150%);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+  }
+  .cover .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--accent-strong);
+    background: var(--accent-bg);
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .cover h1 {
+    font-size: clamp(1.7rem, 4vw, 2.4rem);
+    font-weight: 800;
+    line-height: 1.35;
+    text-wrap: balance;
+    margin: 18px 0 10px;
+  }
+  .cover .sub {
+    color: var(--ink-muted);
+    font-size: 1.05rem;
+    max-width: 60ch;
+    margin: 0;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .meta-item .k {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+    margin-bottom: 2px;
+  }
+  .meta-item .v { font-weight: 700; }
+
+  /* ---------- بخش‌ها ---------- */
+  section { margin: 52px 0; }
+  section > h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0 0 20px;
+    padding-inline-start: 16px;
+    border-inline-start: 4px solid var(--accent);
+  }
+  section > h2 .num {
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+    font-weight: 600;
+  }
+  h3 { font-size: 1.08rem; font-weight: 700; margin: 26px 0 10px; }
+  p { margin: 0 0 14px; }
+  p.lead { font-size: 1.05rem; color: var(--ink-muted); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ---------- نشانگرهای وضعیت ---------- */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .pill.done { color: var(--status-done); background: var(--status-done-bg); }
+  .pill.planned { color: var(--status-planned); background: var(--status-planned-bg); }
+  .pill.risk { color: var(--status-risk); background: var(--status-risk-bg); }
+  .pill::before { content: "●"; font-size: 0.6em; }
+
+  /* ---------- جدول‌ها ---------- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; background: var(--surface); }
+  thead th {
+    text-align: start;
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+    font-weight: 700;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 0.95rem;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  code {
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 5px;
+    direction: ltr;
+    unicode-bidi: embed;
+  }
+
+  /* ---------- لیست اجزای ساخته‌شده ---------- */
+  .component {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 4px 16px;
+    align-items: start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .component:last-child { border-bottom: none; }
+  .component .name { font-weight: 700; font-family: "Cascadia Code", Consolas, monospace; font-size: 0.92rem; direction: ltr; text-align: start; }
+  .component .desc { grid-column: 1 / -1; color: var(--ink-muted); font-size: 0.92rem; margin: 0; }
+
+  /* ---------- نمودار معماری ---------- */
+  .diagram-card { padding: 32px; display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .flow-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .flow-single { display: flex; justify-content: center; }
+  .node {
+    border: 1.5px solid var(--status-done);
+    background: var(--status-done-bg);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 12px 16px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .node.planned {
+    border-style: dashed;
+    border-color: var(--status-planned);
+    background: var(--status-planned-bg);
+  }
+  .node.wide { max-width: 460px; margin: 0 auto; width: 100%; }
+  .node small { display: block; font-weight: 500; color: var(--ink-muted); font-size: 0.78rem; margin-top: 4px; }
+  .arrow-col { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; }
+  .arrow { color: var(--ink-muted); font-size: 1.3rem; line-height: 1; }
+  .arrow-planned { color: var(--status-planned); }
+  .arrow-label { font-size: 0.74rem; color: var(--ink-muted); }
+  @media (max-width: 560px) { .flow-row { grid-template-columns: 1fr; } }
+  .monitor-strip {
+    margin-top: 24px;
+    border: 1.5px dashed var(--status-planned);
+    background: var(--status-planned-bg);
+    border-radius: 10px;
+    padding: 14px 18px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.92rem;
+  }
+  .monitor-strip small { display: block; font-weight: 500; color: var(--ink-muted); font-size: 0.78rem; margin-top: 4px; }
+
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+
+  /* ---------- کادر یافته‌ی مهم ---------- */
+  .callout {
+    border: 1px solid var(--status-risk);
+    background: var(--status-risk-bg);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .callout .label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--status-risk);
+    margin-bottom: 6px;
+  }
+  .callout p { margin: 0; font-size: 0.95rem; }
+
+  /* ---------- فهرست خلاصه ---------- */
+  .summary-list { list-style: none; padding: 0; margin: 18px 0 0; }
+  .summary-list li {
+    display: flex;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+  }
+  .summary-list li:last-child { border-bottom: none; }
+  .summary-list .mark { flex: none; font-weight: 700; line-height: 1.7; }
+  .summary-list .mark.yes { color: var(--status-done); }
+  .summary-list .mark.no { color: var(--status-planned); }
+
+  /* ---------- ریسک‌ها ---------- */
+  .risk-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .risk-item:last-child { border-bottom: none; }
+  .risk-item .dot { color: var(--status-risk); flex: none; font-size: 1.1rem; line-height: 1.6; }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-muted);
+    font-size: 0.85rem;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .cover { box-shadow: none; }
+    .card, .table-wrap { box-shadow: none; }
+    section { page-break-inside: avoid; margin: 28px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="cover">
+    <span class="eyebrow">⚡ سند فنی و پیشنهاد پروژه</span>
+    <h1>سامانه‌ی هشدار پیامکی خاموشی برق</h1>
+    <p class="sub">معماری، پشته‌ی فناوری، وضعیت فعلی ساخت، و نقشه‌راه اتصال به درگاه پیامکی میرکا اس‌ام‌اس.</p>
+    <div class="meta-row">
+      <div class="meta-item"><span class="k">شهر پایلوت</span><span class="v">بابل، مازندران</span></div>
+      <div class="meta-item"><span class="k">وضعیت کلی</span><span class="v">فاز ۱ تا ۶ تکمیل‌شده</span></div>
+      <div class="meta-item"><span class="k">تست خودکار</span><span class="v">۶۷ تست موفق</span></div>
+      <div class="meta-item"><span class="k">نوع سند</span><span class="v">پیشنهاد فنی (RFP)</span></div>
+    </div>
+  </div>
+
+  <section>
+    <h2><span class="num">۰۱</span> خلاصه‌ی اجرایی</h2>
+    <p class="lead">یک سرویس خودکار که پیش از شروع خاموشی‌های برنامه‌ریزی‌شده، به مشترکین ثبت‌شده پیامک هشدار می‌فرستد — بدون نیاز به اینکه کاربر خودش سایتی را چک کند.</p>
+
+    <p>سامانه از چهار لایه‌ی مستقل تشکیل شده است: یک <strong>موتور جمع‌آوری داده</strong> که برنامه‌ی خاموشی را از منابع رسمی برداشت می‌کند؛ یک <strong>پایگاه‌داده و رابط وب اپراتور</strong> که اطلاعات مشترکین (جمع‌آوری‌شده از طریق تماس تلفنی بازاریاب) را ثبت و نگهداری می‌کند؛ یک <strong>موتور تطبیق روزانه</strong> که مشخص می‌کند کدام مشترک امروز خاموشی دارد؛ و یک <strong>پنل مانیتورینگ</strong> که کل این زنجیره را زیر نظر می‌گیرد. لایه‌ی پنجم — ارسال واقعی پیام — طراحی شده اما هنوز پیاده‌سازی نشده است.</p>
+
+    <h3>آنچه تا امروز ساخته و تست شده است</h3>
+    <ul class="summary-list">
+      <li><span class="mark yes">✓</span><span><strong>موتور جمع‌آوری داده</strong> — برداشت زنده از منبع مستقیم بابل، با آداپتور اختصاصی همان سایت؛ خروجی جدول/JSON/CSV.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>پایگاه‌داده SQLite</strong> با شش جدول: مشترکین، خاموشی‌ها، کاربران ادمین، نشست‌های ورود، تنظیمات سامانه، و تاریخچه‌ی اجراها.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>احراز هویت پنل</strong> — ورود با نام کاربری و رمز، کوکی نشست امن (<code>HttpOnly</code> + <code>SameSite</code>)، خروج از حساب، و ابزار خط‌فرمان ساخت حساب اپراتور. رمزها با الگوریتم <code>scrypt</code> و نمک تصادفی ذخیره می‌شوند — هرگز به‌صورت خام.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>پنل دو-تبی ریسپانسیو</strong> — تب «ثبت مشترک» و تب «مانیتورینگ»، قابل استفاده روی موبایل و ویندوز.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>مدیریت مشترکین</strong> — ثبت، فهرست‌گیری، و <strong>حذف</strong> مشترک با تأیید صریح؛ جلوگیری از ثبت شماره‌ی تکراری.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>کلید فعال/غیرفعال کل سامانه</strong> — پیش‌فرض <strong>خاموش</strong>؛ تا وقتی ادمین صریحاً روشن نکند، هیچ داده‌ای ذخیره و هیچ پیامکی ارسال نمی‌شود. تغییر وضعیت با ثبت نام ادمینِ تغییردهنده.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>پاک‌سازی روزانه‌ی داده</strong> — با هر اجرای واقعی، خاموشی‌های روزهای گذشته حذف و داده‌ی روز جاری جایگزین می‌شود. این پاک‌سازی <strong>فقط جدول خاموشی</strong> را لمس می‌کند و اطلاعات مشترکین و حساب‌های ادمین را هرگز حذف نمی‌کند.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>سه ابزار تست دستی در پنل مانیتورینگ:</strong> «تست دریافت داده» (فقط فهرست قطعی‌ها)، «تست همسان‌سازی مشترک با ساعت قطعی» (نمایش هم‌زمان مشترکین دارای قطعی و بدون قطعی)، و «اجرای واقعی». دو تست اول <strong>هیچ‌چیز ذخیره نمی‌کنند</strong> و مستقل از کلید فعال/غیرفعال کار می‌کنند.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>نظارت بصری بر چهار مرحله</strong> (جمع‌آوری، ذخیره‌سازی، تطبیق، ارسال) با رنگ‌بندی وضعیت، به‌همراه تاریخچه‌ی اجراها و متن کامل خطاها.</span></li>
+      <li><span class="mark yes">✓</span><span><strong>۶۷ تست خودکار</strong> که بدون نیاز به اینترنت اجرا می‌شوند و رفتارهای حساس را تضمین می‌کنند.</span></li>
+    </ul>
+
+    <h3>آنچه هنوز ساخته نشده است</h3>
+    <ul class="summary-list">
+      <li><span class="mark no">○</span><span><strong>ارسال واقعی پیام</strong> — نه تلگرام (تست) و نه میرکا اس‌ام‌اس (نهایی). در پنل مانیتورینگ صادقانه با وضعیت «پیاده‌سازی نشده» نمایش داده می‌شود، نه سبز.</span></li>
+      <li><span class="mark no">○</span><span><strong>لاگ وضعیت پیامک و بازارسال خودکار</strong> پیام‌های ناموفق.</span></li>
+      <li><span class="mark no">○</span><span><strong>زمان‌بند خودکار روزانه</strong> — فعلاً اجرای واقعی فقط با دکمه‌ی پنل انجام می‌شود.</span></li>
+      <li><span class="mark no">○</span><span><strong>فیلد جنسیت</strong> در فرم ثبت، برای شخصی‌سازی متن پیامک خودکار.</span></li>
+      <li><span class="mark no">○</span><span><strong>اعتبارسنجی شماره موبایل</strong> — فرم فعلاً هر متنی را می‌پذیرد.</span></li>
+    </ul>
+
+    <div class="callout">
+      <span class="label">یافته‌ی حیاتی از تست زنده — پیش از هرگونه تعهد تجاری باید بررسی شود</span>
+      <p>در بررسی زنده‌ی منبع مشخص شد که <strong>برنامه‌ی خاموشی از پیش اعلام نمی‌شود</strong>. در یک نمونه‌گیری، از ۱۳۵ قطعی ثبت‌شده برای روز جاری، تنها ۳۳ مورد (حدود ۲۴٪) هنوز شروع نشده بودند و قابل هشدار قبلی بودند؛ بقیه زمانی روی سایت ظاهر شدند که خاموشی از قبل آغاز شده بود. برای فردا و روزهای بعد نیز هیچ رکوردی منتشر نشده بود. خبر خوب اینکه برای همان ۲۴٪، فاصله‌ی هشدار کافی است (حداقل ۶۰ دقیقه، میانه ۳ ساعت). <strong>نتیجه:</strong> وعده‌ی محصول باید از «برنامه‌ی فردای شما را می‌فرستیم» به «به‌محض اعلام رسمی، ۱ تا ۳ ساعت قبل خبر می‌دهیم» تغییر کند. توصیه می‌شود پیش از تعهد، یک هفته لاگ‌برداری دوره‌ای انجام شود تا این نسبت با دقت اندازه‌گیری شود.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">۰۲</span> مسئله و راه‌حل</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>مسئله</h3>
+        <p style="margin-bottom:0">خاموشی‌های برنامه‌ریزی‌شده در بسیاری از مناطق، روزانه و در بازه‌های حدوداً دوساعته اعمال می‌شود. اطلاع‌رسانی موجود «غیرفعال» است — کاربر باید خودش اپلیکیشن یا سایت اداره‌برق را باز کند و جدول را چک کند. بسیاری این کار را فراموش می‌کنند یا دسترسی پایدار به اینترنت ندارند.</p>
+      </div>
+      <div class="card">
+        <h3>راه‌حل</h3>
+        <p style="margin-bottom:0">اطلاع‌رسانی «فعال» (Push): سامانه خودش هر روز جدول خاموشی را برداشت می‌کند، آن را با محله‌ی ثبت‌شده‌ی هر مشترک تطبیق می‌دهد، و پیش از خاموشی پیامک می‌فرستد — بدون نیاز به اقدام از سمت کاربر.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">۰۳</span> معماری کلی</h2>
+    <div class="card diagram-card">
+      <div class="flow-row">
+        <div class="node done">منابع رسمی خاموشی<small>سایت شرکت توزیع برق</small></div>
+        <div class="node done">اپراتور / بازاریاب<small>تماس تلفنی</small></div>
+      </div>
+      <div class="flow-row">
+        <div class="arrow-col"><span class="arrow-label">fetch + parse</span><span class="arrow">↓</span></div>
+        <div class="arrow-col"><span class="arrow-label">فرم ثبت وب</span><span class="arrow">↓</span></div>
+      </div>
+      <div class="flow-row">
+        <div class="node done">موتور جمع‌آوری<small><code>outage_scraper</code></small></div>
+        <div class="node done">رابط وب ثبت مشترک<small>پشت احراز هویت (<code>auth.py</code>)</small></div>
+      </div>
+      <div class="flow-single"><span class="arrow">↓</span></div>
+      <div class="node done wide">پایگاه‌داده SQLite<small>۶ جدول: مشترک، خاموشی، ادمین، نشست، تنظیمات، تاریخچه</small></div>
+      <div class="flow-single"><span class="arrow">↓</span></div>
+      <div class="node done wide">موتور تطبیق روزانه<small><code>sync.py</code> + <code>matcher.py</code> — با پاک‌سازی خودکار داده‌ی روز قبل</small></div>
+      <div class="flow-single"><span class="arrow arrow-planned">↓</span></div>
+      <div class="node planned wide">درگاه ارسال پیام<small>تلگرام (تست) ← میرکا اس‌ام‌اس (نهایی)</small></div>
+      <div class="flow-single"><span class="arrow arrow-planned">↓</span></div>
+      <div class="node planned wide">موبایل مشترک</div>
+
+      <div class="monitor-strip" style="border-style:solid;border-color:var(--status-done);background:var(--status-done-bg)">
+        ↑ پنل مانیتورینگ ادمین — نظارت بر کل زنجیره‌ی بالا
+        <small>وضعیت چهار مرحله با رنگ‌بندی، تاریخچه‌ی اجراها، سه ابزار تست دستی، و کلید فعال/غیرفعال کل سامانه — رابط ریسپانسیو، موبایل و ویندوز</small>
+      </div>
+    </div>
+    <p style="margin-top:16px"><span class="pill done">ساخته‌شده</span>&nbsp; اجزای سبز (شامل پنل مانیتورینگ و احراز هویت) &nbsp;·&nbsp; <span class="pill planned">برنامه‌ریزی‌شده</span>&nbsp; درگاه پیامک/تلگرام و گیرنده‌ی نهایی</p>
+  </section>
+
+  <section>
+    <h2><span class="num">۰۴</span> پشته‌ی فناوری</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>لایه</th><th>فناوری</th><th>نقش</th></tr></thead>
+        <tbody>
+          <tr><td>زبان اصلی</td><td><code>Python 3.13</code></td><td>کل بک‌اند و اسکریپت‌ها</td></tr>
+          <tr><td>برداشت وب</td><td><code>requests</code>, <code>BeautifulSoup4</code>, <code>lxml</code></td><td>دانلود و پارس صفحات منابع رسمی</td></tr>
+          <tr><td>جستجوی وب</td><td><code>DuckDuckGo HTML endpoint</code></td><td>یافتن صفحه‌ی خاموشی برای شهرهایی که منبع مستقیم ندارند</td></tr>
+          <tr><td>تاریخ شمسی</td><td><code>jdatetime</code></td><td>تبدیل و تطبیق تاریخ میلادی/جلالی</td></tr>
+          <tr><td>سرور وب / API</td><td><code>FastAPI</code> + <code>Uvicorn</code></td><td>پنل اپراتور و APIهای مانیتورینگ</td></tr>
+          <tr><td>پایگاه‌داده</td><td><code>SQLModel</code> (روی SQLAlchemy) + <code>SQLite</code></td><td>نگهداری مشترکین، خاموشی‌ها، حساب‌ها و تاریخچه</td></tr>
+          <tr><td>احراز هویت</td><td><code>hashlib.scrypt</code> (کتابخانه‌ی استاندارد پایتون)</td><td>هش رمز با نمک تصادفی و مقایسه‌ی زمان-ثابت — بدون وابستگی جدید</td></tr>
+          <tr><td>قالب‌بندی صفحه‌ها</td><td><code>Jinja2</code></td><td>قالب پایه‌ی مشترک، تا نوار تب در صفحه‌ها تکرار نشود</td></tr>
+          <tr><td>رابط کاربری</td><td>HTML + Tailwind (CDN) + JS ساده</td><td>پنل دو-تبی ریسپانسیو در مرورگر</td></tr>
+          <tr><td>تست خودکار</td><td><code>pytest</code></td><td>۶۷ تست، بدون نیاز به اینترنت</td></tr>
+          <tr><td>پنل مانیتورینگ</td><td>FastAPI + Jinja2 + JS</td><td>وضعیت چهار مرحله، تاریخچه، تست‌های دستی، کلید فعال/غیرفعال</td></tr>
+          <tr><td>ارسال پیام <span class="pill planned">برنامه‌ریزی‌شده</span></td><td>Telegram Bot API → میرکا اس‌ام‌اس (Mirca SMS)</td><td>تست اولیه با تلگرام، نسخه‌ی نهایی با پیامک</td></tr>
+          <tr><td>زمان‌بندی <span class="pill planned">برنامه‌ریزی‌شده</span></td><td>Windows Task Scheduler / Cron</td><td>اجرای خودکار روزانه‌ی sync</td></tr>
+          <tr><td>لاگ ارسال و بازارسال <span class="pill planned">برنامه‌ریزی‌شده</span></td><td>جدول Message در همان SQLite</td><td>ثبت وضعیت هر پیامک (موفق/ناموفق/در صف) و بازارسال خودکار</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">۰۵</span> وضعیت فعلی به تفکیک اجزا</h2>
+
+    <h3>موتور جمع‌آوری داده — <code>outage_scraper/</code></h3>
+    <div class="card">
+      <div class="component">
+        <span class="name">sources.py + site_adapters/</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">آداپتور اختصاصی برای منبع مستقیم بابل (app.e-saricity.ir). چون این سایت خاموشی‌ها را نسبت به «امروز» برچسب می‌زند نه تاریخ مطلق، این لایه تاریخ درخواستی را به همان برچسب نسبی تبدیل می‌کند تا فقط داده‌ی روز درست برگردد.</p>
+      </div>
+      <div class="component">
+        <span class="name">parser.py + timeparse.py</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">پارسر عمومی برای صفحات ناشناخته (نتایج جستجو): استخراج از روی جدول HTML، و در نبود جدول، استخراج از متن آزاد خبری.</p>
+      </div>
+      <div class="component">
+        <span class="name">cli.py + dates.py + models.py</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">ارکستراسیون (منبع مستقیم، سپس fallback به جستجو)، تبدیل تاریخ جلالی/میلادی، و مدل داده‌ی <code>OutageRecord</code>. خروجی به‌صورت جدول/JSON/CSV در ترمینال.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">پایگاه‌داده و رابط اپراتور — <code>admin_app/</code></h3>
+    <div class="card">
+      <div class="component">
+        <span class="name">models.py + db.py</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">شش جدول SQLite: <code>Subscriber</code>، <code>Outage</code>، <code>AdminUser</code>، <code>AdminSession</code>، <code>SystemSetting</code> و <code>SyncRun</code>. جزئیات در بخش «مدل داده».</p>
+      </div>
+      <div class="component">
+        <span class="name">auth.py + create_admin.py</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">احراز هویت با فرم ورود و کوکی نشست. رمزها با <code>scrypt</code> و نمک تصادفی هش می‌شوند و مقایسه‌ی زمان-ثابت انجام می‌شود. کوکی با <code>HttpOnly</code> (ضد XSS) و <code>SameSite</code> (ضد CSRF) تنظیم می‌شود و هنگام خروج، ردیف نشست از دیتابیس حذف می‌گردد. حساب اپراتور با ابزار خط‌فرمان ساخته می‌شود (رمز مخفیانه پرسیده می‌شود) — عمداً هیچ حساب پیش‌فرضی وجود ندارد.</p>
+      </div>
+      <div class="component">
+        <span class="name">main.py + templates/</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">پنل دو-تبی با قالب پایه‌ی مشترک: تب «ثبت مشترک» (ثبت، فهرست، و حذف با تأیید) و تب «مانیتورینگ». همه‌ی مسیرها جز صفحه‌ی ورود، پشت نگهبان احراز هویت‌اند؛ صفحه‌ها به ورود هدایت می‌شوند و APIها خطای ۴۰۱ می‌دهند.</p>
+      </div>
+      <div class="component">
+        <span class="name">matcher.py + sync.py</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">مراحل دریافت، پاک‌سازی، ذخیره و تطبیق از هم جدا شده‌اند تا هم اجرای واقعی و هم اجرای آزمایشی از یک کد استفاده کنند. اجرای واقعی خاموشی‌های روزهای گذشته را پاک و داده‌ی روز جاری را جایگزین می‌کند؛ شرط حذف «تاریخ کوچک‌تر از روز هدف» است تا اجرای برای یک تاریخ گذشته، داده‌ی امروز را از بین نبرد.</p>
+      </div>
+      <div class="component">
+        <span class="name">system_state.py</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">کلید فعال/غیرفعال کل سامانه (پیش‌فرض خاموش) و تاریخچه‌ی اجراها. تاریخچه، اجرای «تست» را از «واقعی» تفکیک می‌کند و شاخص سلامت فقط اجراهای واقعی را می‌شمارد — تا زدن دکمه‌ی تست، سامانه را به‌اشتباه سالم و به‌روز نشان ندهد.</p>
+      </div>
+      <div class="component">
+        <span class="name">monitoring.py + templates/monitoring.html</span>
+        <span class="pill done">ساخته و تست‌شده</span>
+        <p class="desc">پنل مانیتورینگ ریسپانسیو (موبایل و ویندوز): وضعیت رنگی چهار مرحله‌ی زنجیره، تاریخچه‌ی اجراها با متن کامل خطا، کلید فعال/غیرفعال، و سه ابزار تست دستی — «تست دریافت داده» که فقط فهرست قطعی‌ها را نشان می‌دهد، «تست همسان‌سازی مشترک با ساعت قطعی» که هم‌زمان مشترکین دارای قطعی و بدون قطعی را فهرست می‌کند (فهرست دوم برای عیب‌یابی حیاتی است)، و «اجرای واقعی». دو تست اول هیچ داده‌ای ذخیره نمی‌کنند و مستقل از کلید فعال/غیرفعال کار می‌کنند.</p>
+      </div>
+      <div class="component">
+        <span class="name">notifiers/ (تلگرام، میرکا اس‌ام‌اس)</span>
+        <span class="pill planned">برنامه‌ریزی‌شده</span>
+        <p class="desc">هنوز ساخته نشده. طراحی پیشنهادی: یک رابط ارسال مشترک با دو پیاده‌سازی — تلگرام برای تست سریع، و درگاه میرکا اس‌ام‌اس برای نسخه‌ی نهایی — تا تعویض کانال بدون تغییر منطق تطبیق ممکن باشد. دو نوع پیام از پیش تعیین‌شده در نظر گرفته می‌شود: هشدار خاموشی برای مشترکینی که امروز خاموشی دارند، و پیامک اطمینان‌بخش برای بقیه‌ی مشترکین فعال. چون متن پیام شخصی‌سازی‌شده است، نام و جنسیت مشترک در ساخت متن استفاده می‌شود.</p>
+      </div>
+      <div class="component">
+        <span class="name">جدول Message + منطق بازارسال</span>
+        <span class="pill planned">برنامه‌ریزی‌شده</span>
+        <p class="desc">هر پیامک ارسالی (موفق یا ناموفق) با وضعیت و دلیل خطا ثبت می‌شود. پیامک‌های ناموفق به‌صورت خودکار در صف بازارسال قرار می‌گیرند و در پنل مانیتورینگ به اپراتور نمایش داده می‌شوند تا از خطا مطلع باشد.</p>
+      </div>
+      <div class="component">
+        <span class="name">زمان‌بند خودکار روزانه</span>
+        <span class="pill planned">برنامه‌ریزی‌شده</span>
+        <p class="desc">اجرای واقعی از طریق دکمه‌ی پنل تست و تأیید شده است؛ اجرای خودکار زمان‌بندی‌شده (مثلاً هر ساعت) هنوز تنظیم نشده.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">۰۶</span> مدل داده</h2>
+    <div class="grid-3">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">Subscriber (مشترک)</th></tr></thead>
+          <tbody>
+            <tr><td><code>full_name</code></td><td>نام و نام خانوادگی</td></tr>
+            <tr><td><code>gender</code> <span class="pill planned">جدید</span></td><td>جنسیت — برای درست‌نویسی متن پیامک خودکار (آقا/خانم، صرف فعل)</td></tr>
+            <tr><td><code>mobile</code></td><td>شماره موبایل (یکتا)</td></tr>
+            <tr><td><code>province</code>, <code>city</code></td><td>استان، شهر</td></tr>
+            <tr><td><code>neighborhood</code></td><td>محله/خیابان — پایه‌ی تطبیق</td></tr>
+            <tr><td><code>neighborhood_code</code></td><td>اختیاری، فعلاً فقط ذخیره می‌شود</td></tr>
+            <tr><td><code>is_active</code></td><td>فعال/غیرفعال</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">Outage (خاموشی)</th></tr></thead>
+          <tbody>
+            <tr><td><code>city</code>, <code>province</code></td><td>شهر، استان</td></tr>
+            <tr><td><code>date_jalali</code>, <code>date_gregorian</code></td><td>تاریخ به هر دو تقویم</td></tr>
+            <tr><td><code>location</code></td><td>محل خاموشی (متن آزاد از منبع)</td></tr>
+            <tr><td><code>start_time</code>, <code>end_time</code></td><td>بازه‌ی زمانی خاموشی</td></tr>
+            <tr><td><code>source_url</code></td><td>لینک منبع، برای پیگیری</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">AdminUser (کاربر پنل)</th></tr></thead>
+          <tbody>
+            <tr><td><code>username</code></td><td>نام کاربری (یکتا)</td></tr>
+            <tr><td><code>password_hash</code></td><td>هش scrypt به‌همراه نمک — رمز خام هرگز ذخیره نمی‌شود</td></tr>
+            <tr><td><code>is_active</code></td><td>قطع دسترسی بدون حذف سابقه</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">AdminSession (نشست ورود)</th></tr></thead>
+          <tbody>
+            <tr><td><code>token</code></td><td>مقدار تصادفی داخل کوکی مرورگر</td></tr>
+            <tr><td><code>admin_id</code></td><td>کاربر مربوطه</td></tr>
+            <tr><td><code>expires_at</code></td><td>انقضا (۱۲ ساعت). چون نشست‌ها در دیتابیس‌اند، ری‌استارت سرور کاربران را بیرون نمی‌اندازد</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">SystemSetting (تنظیمات)</th></tr></thead>
+          <tbody>
+            <tr><td><code>is_enabled</code></td><td>کلید فعال/غیرفعال کل سامانه — پیش‌فرض <strong>خاموش</strong></td></tr>
+            <tr><td><code>updated_by</code></td><td>ادمینی که آخرین بار وضعیت را تغییر داد</td></tr>
+            <tr><td><code>updated_at</code></td><td>زمان تغییر</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">SyncRun (تاریخچه‌ی اجرا)</th></tr></thead>
+          <tbody>
+            <tr><td><code>started_at</code>, <code>finished_at</code></td><td>زمان شروع و پایان</td></tr>
+            <tr><td><code>status</code></td><td>موفق / ناموفق</td></tr>
+            <tr><td><code>is_dry_run</code></td><td>تفکیک اجرای «تست» از «واقعی»</td></tr>
+            <tr><td><code>fetched/stored/purged/matched</code></td><td>آمار همان اجرا</td></tr>
+            <tr><td><code>error_message</code></td><td>متن خطا، برای نمایش در پنل</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th colspan="2">Message <span class="pill planned">برنامه‌ریزی‌شده</span></th></tr></thead>
+          <tbody>
+            <tr><td><code>subscriber_id</code></td><td>مشترک گیرنده</td></tr>
+            <tr><td><code>outage_id</code></td><td>خاموشی مرتبط (خالی برای پیامک «بدون قطعی»)</td></tr>
+            <tr><td><code>channel</code></td><td>تلگرام / پیامک</td></tr>
+            <tr><td><code>status</code></td><td>ارسال‌شده / ناموفق / در صف بازارسال</td></tr>
+            <tr><td><code>error_reason</code></td><td>دلیل خطا، برای نمایش در پنل مانیتورینگ</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">۰۷</span> نقشه‌راه</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>فاز</th><th>خروجی</th><th>وضعیت</th></tr></thead>
+        <tbody>
+          <tr><td>۱</td><td>رابط وب اپراتور + پایگاه‌داده + ثبت مشترک</td><td><span class="pill done">تکمیل‌شده</span></td></tr>
+          <tr><td>۲</td><td>موتور جمع‌آوری و پارس جدول خاموشی</td><td><span class="pill done">تکمیل‌شده</span></td></tr>
+          <tr><td>۳</td><td>موتور تطبیق مشترک ↔ خاموشی</td><td><span class="pill done">نسخه‌ی اول تکمیل‌شده</span></td></tr>
+          <tr><td>۴</td><td>احراز هویت پنل + مدیریت حساب اپراتور</td><td><span class="pill done">تکمیل‌شده</span></td></tr>
+          <tr><td>۵</td><td>حذف مشترک از پنل</td><td><span class="pill done">تکمیل‌شده</span></td></tr>
+          <tr><td>۶</td><td>پنل مانیتورینگ + کلید فعال/غیرفعال + تست‌های دستی + پاک‌سازی روزانه</td><td><span class="pill done">تکمیل‌شده</span></td></tr>
+          <tr><td>۷</td><td><strong>اعتبارسنجی فرضیه‌ی محصول</strong> — یک هفته لاگ‌برداری دوره‌ای برای اندازه‌گیری نسبت قطعی‌های قابل هشدار قبلی</td><td><span class="pill risk">اولویت اول</span></td></tr>
+          <tr><td>۸</td><td>نرمال‌سازی متن محله (ی/ي، ک/ك، نیم‌فاصله) و بهبود دقت تطبیق</td><td><span class="pill risk">اولویت دوم</span></td></tr>
+          <tr><td>۹</td><td>اعتبارسنجی شماره موبایل در فرم ثبت</td><td><span class="pill planned">برنامه‌ریزی‌شده</span></td></tr>
+          <tr><td>۱۰</td><td>افزودن جنسیت به فرم ثبت، برای شخصی‌سازی متن پیامک</td><td><span class="pill planned">برنامه‌ریزی‌شده</span></td></tr>
+          <tr><td>۱۱</td><td>ارسال پیام تستی از طریق تلگرام</td><td><span class="pill planned">برنامه‌ریزی‌شده</span></td></tr>
+          <tr><td>۱۲</td><td>اتصال به درگاه پیامکی میرکا اس‌ام‌اس</td><td><span class="pill planned">برنامه‌ریزی‌شده</span></td></tr>
+          <tr><td>۱۳</td><td>لاگ وضعیت ارسال + بازارسال خودکار پیامک‌های ناموفق</td><td><span class="pill planned">برنامه‌ریزی‌شده</span></td></tr>
+          <tr><td>۱۴</td><td>زمان‌بند خودکار روزانه</td><td><span class="pill planned">برنامه‌ریزی‌شده</span></td></tr>
+          <tr><td>۱۵</td><td>درگاه پرداخت و مدیریت اشتراک</td><td><span class="pill planned">فاز تجاری بعدی</span></td></tr>
+          <tr><td>۱۶</td><td>ثبت‌نام مستقیم کاربر، بدون اپراتور</td><td><span class="pill planned">فاز آینده</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">۰۸</span> محدودیت‌ها و ریسک‌های شناخته‌شده</h2>
+    <div class="card">
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0"><strong>برنامه‌ی خاموشی از پیش اعلام نمی‌شود.</strong> در تست زنده، از ۱۳۵ قطعی روز جاری تنها ۳۳ مورد (۲۴٪) هنوز شروع نشده و قابل هشدار قبلی بودند؛ برای فردا هیچ رکوردی منتشر نشده بود. این مهم‌ترین ریسک پروژه است و مستقیماً بر وعده‌ی محصول اثر می‌گذارد — جزئیات در خلاصه‌ی اجرایی.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0"><strong>تطبیق زیررشته‌ای شکننده است — در عمل اثبات شد.</strong> اولین مشترک واقعی که با محله‌ی «بلوار معلم معلم ۱/۱» ثبت شد، هیچ تطبیقی نگرفت، چون منبع این محدوده را به شکل «(معلم ۲ تا ۱۸)» یا «از معلم ۱۹ تا دانشگاه نوشیروانی» می‌نویسد. همچنین «غدير» با «ی» عربی صفر تطبیق می‌دهد در حالی که «غدیر» با «ی» فارسی تطبیق دارد، و یک کلمه‌ی عمومی مثل «محله» با ۳۵٪ رکوردها تطبیق می‌دهد. تا زمان نرمال‌سازی متن و تطبیق بازه‌ای، ثبت محله باید کوتاه و دقیق باشد و با «تست همسان‌سازی» بررسی شود.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0">منبع مستقیم و دقیق فقط برای بابل تعریف شده است؛ شهرهای دیگر به جستجوی عمومی وب متکی‌اند که کیفیت آن تضمین‌شده نیست (در تست دیده شد که گاهی مقاله‌ای با تاریخ نادرست برداشت می‌شود).</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0">سایت منبع بابل، خاموشی روز را به‌صورت یک پنجره‌ی در حال چرخش نشان می‌دهد، نه کل برنامه‌ی روز یک‌جا؛ برای پوشش کامل روز، اجرای دوره‌ای (نه فقط یک‌بار در روز) لازم است.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0">فیلد «کد محله» در فرم ثبت فعلاً فقط ذخیره می‌شود؛ چون هنوز مشخص نیست دقیقاً معادل چه فیلدی در منابع رسمی خاموشی است، در تطبیق استفاده نمی‌شود.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0">لایه‌ی ارسال پیام (تلگرام و میرکا اس‌ام‌اس) هنوز ساخته نشده؛ جزئیات دقیق اتصال به API میرکا باید از مستندات رسمی آن‌ها گرفته شود.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0">چون برای مشترکینی که خاموشی هم ندارند پیامک اطمینان‌بخش فرستاده می‌شود، حجم پیامک روزانه می‌تواند بسیار بیشتر از تعداد خاموشی‌های واقعی باشد — این باید در برآورد هزینه‌ی پیامک با میرکا لحاظ شود.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0">چون متن پیامک از پیش تعیین‌شده و به نام/جنسیت مشترک وابسته است، مشترکینی که این فیلدها هنگام ثبت کامل نشده باشد را نمی‌توان به‌درستی مطلع کرد؛ تکمیل این فیلدها باید در تماس تلفنی ثبت الزامی شود.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0"><strong>بخشی از رکوردهای منبع، گزارش خرابی است نه قطعی برنامه‌ریزی‌شده.</strong> در داده‌ی زنده مواردی مثل «۳۰ عدد لامپ خاموش می‌باشد» با همان قالب بازه‌ی دوساعته ثبت شده بود. ارسال پیامک «قطعی برق» برای این موارد گمراه‌کننده است و پیش از راه‌اندازی ارسال، باید فیلتر شوند.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0"><strong>فرم ثبت، شماره موبایل را اعتبارسنجی نمی‌کند</strong> و هر متنی را می‌پذیرد. در ثبت واقعی، یک شماره‌ی ۱۲ رقمی (به‌جای ۱۱ رقم) وارد شد. این خطا تا زمان اتصال به درگاه پیامکی پنهان می‌ماند و آن‌جا به‌صورت خطای ارسال ظاهر می‌شود.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0"><strong>محدودیت تلاش ورود (brute force) پیاده نشده است.</strong> الگوریتم <code>scrypt</code> عمداً کند است و حمله را پرهزینه می‌کند، ولی قفل‌شدن حساب پس از چند تلاش ناموفق وجود ندارد. همچنین کوکی نشست گزینه‌ی <code>Secure</code> ندارد؛ هنگام استقرار روی دامنه‌ی واقعی با HTTPS، فعال‌کردن آن الزامی است.</p></div>
+      <div class="risk-item"><span class="dot">●</span><p style="margin:0"><strong>پایگاه‌داده SQLite برای پایلوت مناسب است</strong> ولی نوشتن هم‌زمان از اجرای زمان‌بندی‌شده و پنل وب باعث قفل می‌شود. با افزایش تعداد اپراتورهای هم‌زمان، مهاجرت به PostgreSQL لازم می‌شود.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">۰۹</span> محل ذخیره‌سازی داده</h2>
+    <div class="card">
+      <p>تمام داده‌ها (مشترکین، خاموشی‌ها، حساب‌های ادمین، نشست‌ها، تنظیمات و تاریخچه) در یک فایل SQLite محلی نگهداری می‌شود:</p>
+      <p style="margin-bottom:0"><code>E:\my projects\برق\data\app.db</code></p>
+      <p style="margin-top:14px;margin-bottom:0;color:var(--ink-muted);font-size:0.92rem">این پوشه (<code>data/</code>) عمداً در <code>.gitignore</code> قرار گرفته تا اطلاعات شخصی مشترکین (نام، شماره موبایل) و هش رمزهای ادمین هرگز به‌صورت تصادفی در Git/GitHub ثبت نشوند.</p>
+      <p style="margin-top:14px;margin-bottom:0;color:var(--ink-muted);font-size:0.92rem"><strong>سیاست نگهداری داده:</strong> داده‌ی خاموشی روزانه بازنویسی می‌شود — با هر اجرای واقعی، رکوردهای روزهای گذشته حذف و داده‌ی روز جاری جایگزین می‌گردد. اطلاعات مشترکین و حساب‌های ادمین از این چرخه مستثنا هستند و تنها با اقدام صریح اپراتور (دکمه‌ی حذف در پنل) پاک می‌شوند.</p>
+    </div>
+  </section>
+
+  <footer>
+    این سند خلاصه‌ی وضعیت فنی پروژه‌ی سامانه‌ی هشدار پیامکی خاموشی برق است و برای ارائه به کارفرما تهیه شده است.
+  </footer>
+
+</div>
+</body>
+</html>
