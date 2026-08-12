@@ -10,25 +10,25 @@ this data in very different shapes:
    city and contain a "HH:MM الی HH:MM" style time range, used by news
    roundups that describe the schedule in prose instead of a table.
 """
+# این فایل «موتور عمومی» استخراج اطلاعات خاموشی از صفحات ناشناخته است؛
+# یعنی صفحاتی که از طریق جستجوی وب پیدا می‌شوند (search.py) و از قبل
+# نمی‌دانیم ساختارشان چیست. برای صفحات شناخته‌شده (مثل e-saricity)
+# به‌جای این فایل از site_adapters/ استفاده می‌شود که دقیق‌تر است.
 from __future__ import annotations
 
 import logging
-import re
 
 import requests
 from bs4 import BeautifulSoup
 
 from .dates import to_en_digits
 from .models import OutageRecord
+from .timeparse import CODE_RE, TIME_RANGE_RE, normalize_time as _normalize_time
 
 logger = logging.getLogger(__name__)
 
-_TIME = r"[۰-۹0-9]{1,2}(?::[۰-۹0-9]{2})?"
-TIME_RANGE_RE = re.compile(
-    rf"(?P<start>{_TIME})\s*(?:الی|تا|إلی|–|-|to)\s*(?P<end>{_TIME})"
-)
-CODE_RE = re.compile(r"کد\s*(?:خاموشی|برنامه)?\s*[:\-]?\s*(?P<code>[۰-۹0-9]+)")
-
+# کلمات کلیدی‌ای که در سرتیتر جدول‌ها دنبال آن‌ها می‌گردیم تا بفهمیم
+# هر ستون جدول مربوط به «محل»، «ساعت شروع»، «ساعت پایان» یا «کد» است
 LOCATION_HEADER_KEYWORDS = ("منطقه", "محله", "ناحیه", "خیابان", "محدوده", "آدرس")
 START_HEADER_KEYWORDS = ("از ساعت", "شروع", "از")
 END_HEADER_KEYWORDS = ("تا ساعت", "پایان", "تا")
@@ -37,14 +37,9 @@ CODE_HEADER_KEYWORDS = ("کد",)
 PAGE_SCAN_CHARS = 20_000  # enough for a full article without reading huge pages
 
 
-def _normalize_time(raw: str) -> str:
-    raw = to_en_digits(raw.strip())
-    if ":" not in raw:
-        raw = f"{raw}:00"
-    return raw
-
-
 def _classify_header(text: str) -> str | None:
+    # متن یک سرتیتر جدول را می‌گیرد و می‌گوید نقشش چیست:
+    # "location" / "start" / "end" / "code" یا None اگر ناشناخته بود
     text = text.strip()
     if any(k in text for k in CODE_HEADER_KEYWORDS):
         return "code"
@@ -58,6 +53,8 @@ def _classify_header(text: str) -> str | None:
 
 
 def fetch(url: str, session: requests.Session, timeout: int = 15) -> str | None:
+    # یک صفحه‌ی وب را دانلود می‌کند و متن HTML آن را برمی‌گرداند؛
+    # اگر خطا بدهد (قطع اینترنت، ۴۰۴ و ...) به‌جای کرش کردن، None برمی‌گرداند
     try:
         resp = session.get(url, timeout=timeout)
         resp.raise_for_status()
@@ -70,10 +67,15 @@ def fetch(url: str, session: requests.Session, timeout: int = 15) -> str | None:
 
 
 def _page_mentions_city(soup: BeautifulSoup, city: str) -> bool:
+    # بررسی سریع: آیا این صفحه اصلاً اسم شهر مورد نظر را آورده؟
+    # (فیلتر اولیه، قبل از تلاش برای استخراج جدول/متن)
     return city in soup.get_text(" ", strip=True)[:PAGE_SCAN_CHARS]
 
 
 def _records_from_tables(soup: BeautifulSoup) -> list[dict]:
+    # استراتژی اول: دنبال <table> در صفحه می‌گردد، سرتیترهای هر جدول را
+    # می‌خواند (با _classify_header) و اگر جدول مرتبط تشخیص داده شد،
+    # هر سطر آن را به یک دیکشنری رکورد تبدیل می‌کند
     out: list[dict] = []
     for table in soup.find_all("table"):
         rows = table.find_all("tr")
@@ -99,6 +101,8 @@ def _records_from_tables(soup: BeautifulSoup) -> list[dict]:
                 elif role == "code" and value:
                     record["neighborhood_code"] = to_en_digits(value)
 
+            # اگر ستون‌های start/end به‌درستی تشخیص داده نشدند، به‌عنوان
+            # راه دوم داخل متن سطر دنبال یک بازه‌ی زمانی می‌گردیم
             row_text = " ".join(cells)
             if not (record["start_time"] and record["end_time"]):
                 m = TIME_RANGE_RE.search(row_text)
@@ -112,6 +116,9 @@ def _records_from_tables(soup: BeautifulSoup) -> list[dict]:
 
 
 def _records_from_text(soup: BeautifulSoup, city: str) -> list[dict]:
+    # استراتژی دوم (وقتی جدولی پیدا نشد): تمام پاراگراف/آیتم‌های لیست را
+    # می‌گردد، هر جا اسم شهر و یک بازه‌ی زمانی با هم آمده باشند را
+    # به‌عنوان یک رکورد خاموشی برمی‌دارد (برای خبرهای روایت‌گونه بدون جدول)
     out: list[dict] = []
     for el in soup.find_all(["p", "li"]):
         block = el.get_text(" ", strip=True)
@@ -129,8 +136,8 @@ def _records_from_text(soup: BeautifulSoup, city: str) -> list[dict]:
     return out
 
 
-def parse_outage_page(
-    html: str,
+def build_records(
+    raw_records: list[dict],
     *,
     city: str,
     province: str,
@@ -139,21 +146,13 @@ def parse_outage_page(
     url: str,
     title: str = "",
 ) -> list[OutageRecord]:
-    soup = BeautifulSoup(html, "html.parser")
-    if not _page_mentions_city(soup, city):
-        logger.debug("%s does not mention %r, skipping", url, city)
-        return []
-
-    raw_records = _records_from_tables(soup)
-    if not raw_records:
-        raw_records = _records_from_text(soup, city)
-    if not raw_records:
-        logger.debug(
-            "%s mentions %r but no table/time-range pattern matched; "
-            "the page markup likely differs from what parser.py expects",
-            url, city,
-        )
-
+    """Turn extractor dicts (location/start_time/end_time/neighborhood_code)
+    into deduplicated OutageRecords. Shared by parser.py's own strategies
+    and by site_adapters/, so every extractor speaks the same dict shape.
+    """
+    # این تابع «نقطه‌ی مشترک» همه‌ی استخراج‌کننده‌هاست (چه جدول/متن عمومی،
+    # چه آداپتورهای site_adapters/): دیکشنری خام را به OutageRecord واقعی
+    # تبدیل می‌کند و رکوردهای تکراری را حذف می‌کند
     records: list[OutageRecord] = []
     seen: set[tuple] = set()
     for r in raw_records:
@@ -174,3 +173,39 @@ def parse_outage_page(
         seen.add(rec.key())
         records.append(rec)
     return records
+
+
+def parse_outage_page(
+    html: str,
+    *,
+    city: str,
+    province: str,
+    date_jalali: str,
+    date_gregorian: str,
+    url: str,
+    title: str = "",
+) -> list[OutageRecord]:
+    # نقطه‌ی ورودی اصلی این فایل: یک صفحه‌ی HTML ناشناخته می‌گیرد و
+    # لیست رکوردهای خاموشی آن را برمی‌گرداند (یا [] اگر ربطی نداشت)
+    soup = BeautifulSoup(html, "html.parser")
+    if not _page_mentions_city(soup, city):
+        logger.debug("%s does not mention %r, skipping", url, city)
+        return []
+
+    # اول جدول را امتحان می‌کند؛ اگر چیزی پیدا نشد، سراغ متن آزاد می‌رود
+    raw_records = _records_from_tables(soup)
+    if not raw_records:
+        raw_records = _records_from_text(soup, city)
+    if not raw_records:
+        logger.debug(
+            "%s mentions %r but no table/time-range pattern matched; "
+            "the page markup likely differs from what parser.py expects",
+            url, city,
+        )
+
+    return build_records(
+        raw_records,
+        city=city, province=province,
+        date_jalali=date_jalali, date_gregorian=date_gregorian,
+        url=url, title=title,
+    )

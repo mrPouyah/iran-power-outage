@@ -6,6 +6,9 @@ lightweight scripted use. If DuckDuckGo changes its markup or blocks a
 request, this simply returns an empty list and the caller moves on to
 the next query/source.
 """
+# این ماژول وقتی به کار می‌آید که شهر مورد نظر «منبع مستقیم» شناخته‌شده
+# نداشته باشد (یعنی در sources.py ثبت نشده)؛ به‌جای آن با جستجوی متنی در
+# داک‌داک‌گو، صفحاتی که احتمالاً جدول خاموشی دارند را پیدا می‌کند.
 from __future__ import annotations
 
 import logging
@@ -29,6 +32,8 @@ DEFAULT_HEADERS = {
 
 def _unwrap_redirect(href: str) -> str:
     """DuckDuckGo wraps result links as /l/?uddg=<url-encoded-target>."""
+    # داک‌داک‌گو لینک واقعی نتیجه را داخل یک لینک ریدایرکت مخفی می‌کند؛
+    # این تابع لینک اصلی را از داخل آن بیرون می‌کشد
     if "uddg=" in href:
         target = parse_qs(urlparse(href).query).get("uddg")
         if target:
@@ -38,6 +43,8 @@ def _unwrap_redirect(href: str) -> str:
 
 def web_search(query: str, session: requests.Session, max_results: int = 8) -> list[dict]:
     """Return up to max_results {"title", "url"} dicts for a free-text query."""
+    # یک عبارت جستجو (مثلاً «برنامه قطعی برق بابل ۱۵ مرداد ۱۴۰۵») می‌فرستد
+    # و لیستی از نتایج (عنوان + لینک) را برمی‌گرداند
     try:
         resp = session.post(
             DDG_HTML_URL,

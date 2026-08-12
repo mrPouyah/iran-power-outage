@@ -10,12 +10,13 @@ from pathlib import Path
 from urllib.parse import quote
 
 import requests
+from bs4 import BeautifulSoup
 
 from .dates import OutageDate
 from .models import OutageRecord
-from .parser import fetch, parse_outage_page
+from .parser import build_records, fetch, parse_outage_page
 from .search import DEFAULT_HEADERS, web_search
-from .sources import direct_urls_for
+from .sources import direct_sources_for
 
 logger = logging.getLogger("outage_scraper")
 
@@ -59,16 +60,18 @@ def gather_records(
 ) -> list[OutageRecord]:
     records: list[OutageRecord] = []
 
-    for url in direct_urls_for(city):
-        logger.info("در حال بررسی منبع مستقیم: %s", url)
-        html = fetch(url, session)
+    for source in direct_sources_for(city):
+        logger.info("در حال بررسی منبع مستقیم: %s", source.url)
+        html = fetch(source.url, session)
         if html:
             if debug_dump_dir:
-                _dump_html(debug_dump_dir, url, html)
-            records.extend(parse_outage_page(
-                html, city=city, province=province,
+                _dump_html(debug_dump_dir, source.url, html)
+            soup = BeautifulSoup(html, "html.parser")
+            records.extend(build_records(
+                source.extract(soup, date.gregorian),
+                city=city, province=province,
                 date_jalali=date.jalali_long, date_gregorian=str(date.gregorian),
-                url=url,
+                url=source.url,
             ))
         time.sleep(request_delay)
 

@@ -1,3 +1,4 @@
+# تست‌های موتور عمومی استخراج (parser.py): هم حالت جدولی و هم حالت متنی
 from outage_scraper.parser import parse_outage_page
 
 COMMON_KWARGS = dict(
